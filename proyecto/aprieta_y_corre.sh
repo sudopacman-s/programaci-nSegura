@@ -64,5 +64,11 @@ trap 'echo -e "\n${ROJO}Servidor detenido${SIN_COLOR}"; exit 0' INT
 
 python3 manage.py runserver 0.0.0.0:8000
 
+# APLICAR MIGRACIONES
+
+#python3 manage.py makemigrations
+#python3 manage.py migrate
+
+
 echo -e "\n${VERDE}Servidor detenido correctamente${SIN_COLOR}"
 
