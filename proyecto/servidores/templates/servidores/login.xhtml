@@ -1,0 +1,15 @@
+{% extends "base.xhtml" %}
+{% load static %}
+{% block title %}Log-in{% endblock %}
+{% block content %}
+  <div class="form-container">
+    <img src="{% static "imagenes/NOKOTAN.png" %}" alt="Logo" class="form-logo">
+    <h1>Log-in</h1>
+    <p>Por favor, inicia sesión:</p>
+    <form method="post">
+      {{ form.as_p }}
+      {% csrf_token %}
+      <p><input type="submit" value="Log in"></p>
+    </form>
+  </div>
+{% endblock %}

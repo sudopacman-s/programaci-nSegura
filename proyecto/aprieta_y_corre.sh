@@ -53,7 +53,7 @@ for variable in "${VARIABLES_REQUERIDAS[@]}"; do
     fi
 done
 
-limpiar
+#limpiar
 
 echo -e "\n${VERDE}Credenciales cargadas correctamente${SIN_COLOR}"
 echo -e "${AMARILLO}Iniciando servidor Django con MySQL...${SIN_COLOR}"
