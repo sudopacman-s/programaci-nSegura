@@ -10,7 +10,12 @@ def generar_fernet():
     clave_base64 = base64.urlsafe_b64encode(clave_hash)
     return Fernet(clave_base64)
 
+class Usuario(models.Model):
+    nombre_usuario = models.CharField(max_length=150, unique=True)
+    contrasena_sha256 = models.CharField(max_length=255)
+
 class Servidor(models.Model):
+    id = models.CharField(primary_key=True, max_length=255)  # host_usuario
     host_cifrado = models.BinaryField()
     usuario_cifrado = models.BinaryField()
     contrasena_cifrada = models.BinaryField()
@@ -18,6 +23,7 @@ class Servidor(models.Model):
 
     def guardar_datos(self, host, usuario, contrasena):
         fernet = generar_fernet()
+        self.id = host.replace('.', '-') + "_" + usuario
         self.host_cifrado = fernet.encrypt(host.encode())
         self.usuario_cifrado = fernet.encrypt(usuario.encode())
         self.contrasena_cifrada = fernet.encrypt(contrasena.encode())
@@ -30,4 +36,3 @@ class Servidor(models.Model):
 
     def obtener_contrasena(self):
         return generar_fernet().decrypt(self.contrasena_cifrada).decode()
-

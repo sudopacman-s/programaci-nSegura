@@ -1,9 +1,34 @@
+import subprocess
 from django.shortcuts import render, redirect
+from django.contrib import messages
+from .models import Usuario, Servidor
+from django.views.decorators.csrf import csrf_protect
+import hashlib, paramiko, os
+from django.conf import settings
+from datetime import datetime  
 from django.http import HttpResponse
-from .models import Servidor
-import paramiko
-from django.utils import timezone
-from django.views.decorators.csrf import csrf_exempt
+
+@csrf_protect
+def login_usuario(request):
+    if request.method == 'POST':
+        usuario = request.POST.get('nombre_usuario')
+        contrasena = request.POST.get('contrasena')
+        hash_contrasena = hashlib.sha256(contrasena.encode()).hexdigest()
+
+        try:
+            usuario_obj = Usuario.objects.get(nombre_usuario=usuario)
+            if usuario_obj.contrasena_sha256 == hash_contrasena:
+                request.session['usuario'] = usuario
+                return redirect('dashboard')
+            else:
+                messages.error(request, 'Contraseña incorrecta')
+        except Usuario.DoesNotExist:
+            messages.error(request, 'Usuario no encontrado')
+    return render(request, 'login.html')
+
+def logout_usuario(request):
+    request.session.flush()
+    return redirect('login')
 
 def registrar_servidor(request):
     if request.method == 'POST':
@@ -11,41 +36,66 @@ def registrar_servidor(request):
         usuario = request.POST.get('usuario')
         contrasena = request.POST.get('contrasena')
 
-        cliente_ssh = paramiko.SSHClient()
-        cliente_ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
         try:
-            cliente_ssh.connect(hostname=host, username=usuario, password=contrasena)
+            # 1. Verificar conexión SSH primero
+            cliente = paramiko.SSHClient()
+            cliente.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            cliente.connect(hostname=host, username=usuario, password=contrasena, timeout=10)
 
-            fecha_hora = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
-            mensaje_log = f"Se ha registrado a la aplicación el día {fecha_hora}\n"
-            comando_log = f"echo '{mensaje_log}' | sudo tee -a /var/log/administrador.log"
-            cliente_ssh.exec_command(comando_log)
+            # 2. Registrar en logs del servidor
+            fecha_actual = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            mensaje = f"Registro en aplicación: {fecha_actual}\n"
+            comando = f'echo "{mensaje}" | sudo tee -a /var/log/administrador.log'
+            cliente.exec_command(comando)
+            cliente.close()
 
-            nuevo_servidor = Servidor()
-            nuevo_servidor.guardar_datos(host, usuario, contrasena)
-            nuevo_servidor.save()
-
-            cliente_ssh.close()
-
-            # Guardar el ID del servidor en sesión
-            request.session['servidor_id'] = nuevo_servidor.id
+            # 3. Guardar en base de datos (con cifrado)
+            servidor = Servidor()
+            servidor.guardar_datos(host, usuario, contrasena)  # ¡Usa el nuevo método!
+            servidor.save()
 
             return redirect('dashboard')
 
-        except Exception as e:
-            print(f"[ERROR] No se pudo registrar: {e}")
-            return render(request, 'registrar.html', {'error': '❌ No se pudo registrar. Verifica la conexión y credenciales.'})
+        except paramiko.AuthenticationException:
+            return HttpResponse("Error: Credenciales SSH inválidas")
+        except paramiko.SSHException as e:
+            return HttpResponse(f"Error de conexión SSH: {str(e)}")
+        except Exception as error:
+            return HttpResponse(f"Error inesperado: {str(error)}")
 
-    return render(request, 'registrar.html')
+    return render(request, 'registrar_servidor.html')
 
-
-@csrf_exempt
 def dashboard(request):
-    servidor_id = request.session.get('servidor_id')
+    if 'usuario' not in request.session:
+        return redirect('login')
 
-    if not servidor_id:
-        return HttpResponse("No hay un servidor registrado en esta sesión.", status=400)
+    # Verificar si se debe crear un archivo en un servidor
+    if request.method == 'POST' and 'crear_archivo' in request.POST:
+        servidor_id = request.POST.get('servidor_id')
+        return crear_archivo(request, servidor_id)
+
+    servidores = Servidor.objects.all()
+    estado_servidores = []
+
+    for s in servidores:
+        host = s.obtener_host()
+        respuesta = subprocess.run(["ping", "-c", "3", host], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        salida = respuesta.stdout.decode()
+
+        if "100% packet loss" in salida or "Destination Host Unreachable" in salida:
+            estado = 'rojo'
+        elif "0% packet loss" in salida:
+            estado = 'verde'
+        else:
+            estado = 'amarillo'
+
+        estado_servidores.append((s.id, host, estado))
+
+    return render(request, 'dashboard.html', {'estado_servidores': estado_servidores})
+    
+def crear_archivo(request, servidor_id):
+    if 'usuario' not in request.session:
+        return redirect('login')
 
     try:
         servidor = Servidor.objects.get(id=servidor_id)
@@ -53,34 +103,16 @@ def dashboard(request):
         usuario = servidor.obtener_usuario()
         contrasena = servidor.obtener_contrasena()
 
-        mensaje = ""
+        cliente = paramiko.SSHClient()
+        cliente.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        cliente.connect(host, username=usuario, password=contrasena)
 
-        if request.method == 'POST':
-            mensaje = crear_archivo_txt(host, usuario, contrasena)
-
-        return render(request, 'dashboard.html', {
-            'host': host,
-            'usuario': usuario,
-            'mensaje': mensaje
-        })
-
-    except Servidor.DoesNotExist:
-        return HttpResponse("Servidor no encontrado", status=404)
-
-
-def crear_archivo_txt(host, usuario, contrasena):
-    try:
-        cliente_ssh = paramiko.SSHClient()
-        cliente_ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        cliente_ssh.connect(hostname=host, username=usuario, password=contrasena)
-
-        comando = "echo 'Archivo perro creado con éxito' > perro.txt"
-        cliente_ssh.exec_command(comando)
-        cliente_ssh.close()
-
-        return "✅ Archivo perro.txt creado en el servidor remoto."
-
+        comando = "echo 'Archivo creado' > perro.txt"
+        cliente.exec_command(comando)
+        cliente.close()
+        messages.success(request, f'Archivo creado en {host}')
     except Exception as e:
-        print(f"[ERROR] Al crear archivo: {e}")
-        return "❌ No se pudo crear el archivo perro.txt."
+        messages.error(request, f'Error al crear archivo: {e}')
+
+    return redirect('dashboard')
 
