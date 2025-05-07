@@ -6,15 +6,34 @@
     <img src="{% static 'imagenes/NOKOTAN.png' %}" alt="Logo" class="form-logo">
     <h1>Log-in</h1>
     <p>Por favor, inicia sesión:</p>
+    
     <form method="post">
       {% csrf_token %}
       <p><input type="text" name="nombre_usuario" placeholder="Usuario"></p>
       <p><input type="password" name="contrasena" placeholder="Contraseña"></p>
-      <p><input type="submit" value="Log in"></p>
+      <form method="POST">
+    {% csrf_token %}
+
+    <label>Captcha:</label><br>
+  	
+	<label>¿Cuánto es {{ captcha_a }} + {{ captcha_b }}?</label>
+    <input type="text" name="captcha" required><br><br>
+
+    <br><br>
+    <button type="submit">Iniciar sesión</button>
+
+    {% if errores %}
+        <ul style="color: red;">
+            {% for error in errores %}
+                <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</form>
+
+      
     </form>
-    {% for message in messages %}
-      <p style="color:red;">{{ message }}</p>
-    {% endfor %}
+  </ul>
   </div>
 {% endblock %}
 

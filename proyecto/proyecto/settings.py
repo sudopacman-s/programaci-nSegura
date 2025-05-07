@@ -29,6 +29,11 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 
+SEGUNDOS_INTENTO = 60
+NUMERO_INTENTOS = 3
+TIEMPO_TOKEN=15
+TOKEN_BOT=os.environ.get('TOKEN_BOT')
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -40,6 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'servidores',
+    
 ]
 
 MIDDLEWARE = [

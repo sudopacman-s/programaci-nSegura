@@ -4,6 +4,11 @@ from cryptography.fernet import Fernet
 import base64
 import hashlib
 
+class ContadorIntentos(models.Model):
+    ip = models.GenericIPAddressField(primary_key=True)
+    contador = models.PositiveIntegerField()
+    ultimo_intento = models.DateTimeField()
+
 def generar_fernet():
     clave = settings.SECRET_KEY.encode()
     clave_hash = hashlib.sha256(clave).digest()
@@ -11,8 +16,9 @@ def generar_fernet():
     return Fernet(clave_base64)
 
 class Usuario(models.Model):
-    nombre_usuario = models.CharField(max_length=150, unique=True)
+    nombre_usuario = models.CharField(max_length=150, unique=True, primary_key=True)
     contrasena_sha256 = models.CharField(max_length=255)
+    chat_id = models.CharField(max_length=100, blank=True, null=True)
 
 class Servidor(models.Model):
     id = models.CharField(primary_key=True, max_length=255)  # host_usuario

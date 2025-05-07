@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+  <h1>Servidores Registrados</h1>
+  <ul>
+    {% for servidor_id, host, estado in estado_servidores %}
+    <div>
+        <p>Servidor: {{ host }} - Estado: {{ estado }}</p>
+        <form method="post" action="">
+            {% csrf_token %}
+            <input type="hidden" name="servidor_id" value="{{ servidor_id }}">
+            <button type="submit" name="crear_archivo">Crear archivo</button>
+        </form>
+    </div>
+{% endfor %}
+  </ul>
+{% endblock %}
+
