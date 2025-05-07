@@ -22,15 +22,6 @@ def get_client_ip(request):
         ip = request.META.get('REMOTE_ADDR')
     return ip
 
-def exito(request) -> HttpResponse:
-    """
-    Página de éxito de demostración.
-
-    request
-    returns: HttpResponse 
-    """
-    return HttpResponse('Todo OK')
-
 def ip_registrada(ip: str) -> bool:
     """
     True si la IP ya está en la BD.
@@ -122,6 +113,10 @@ def login(request):
 
     hash_contrasena = hashlib.sha256(contrasena.encode()).hexdigest()
 
+    if not tienes_intentos_login(request):
+        errores.append('Debes esperar %s segundo antes de volver a intentar' % settings.SEGUNDOS_INTENTO)         
+        return render(request, 'login.html', {'errores': errores})
+
     try:
         usuario_obj = Usuario.objects.get(nombre_usuario=usuario)
         if usuario_obj.contrasena_sha256 == hash_contrasena:
@@ -176,8 +171,6 @@ def segundo_factor(request):
         return redirect('dashboard')
     else:
     	return redirect('login')
-    messages.error(request, "Token incorrecto.")
-    return render(request, 'segundo_factor.html')
 
 def logout_view(request):
     request.session.flush()
