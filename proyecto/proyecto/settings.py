@@ -31,9 +31,10 @@ ALLOWED_HOSTS = ['*']
 
 SEGUNDOS_INTENTO = 60
 NUMERO_INTENTOS = 3
-TIEMPO_TOKEN=15
+TIEMPO_TOKEN=120
 TOKEN_BOT=os.environ.get('TOKEN_BOT')
-
+RECAPTCHA_PUBLIC_KEY = '6LcyHDYrAAAAAEqiDlEobCakOHDWKnEmESCHKkzx'
+RECAPTCHA_PRIVATE_KEY = '6LcyHDYrAAAAAOu_49RfOfbneI7wylw47mmGXaQp'
 # Application definition
 
 INSTALLED_APPS = [
@@ -45,7 +46,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'servidores',
-    
+    'django_recaptcha',
+
 ]
 
 MIDDLEWARE = [

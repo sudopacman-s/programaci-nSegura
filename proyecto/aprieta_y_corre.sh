@@ -36,7 +36,7 @@ CONTENIDO_ENV=$(openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 -salt \
 
 if [ $? -ne 0 ]; then
     echo -e "\n${ROJO}Error: Contraseña incorrecta o archivo dañado${SIN_COLOR}"
-    limpiar
+    #limpiar
     exit 1
 fi
 

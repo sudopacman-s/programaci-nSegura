@@ -14,6 +14,25 @@ import string
 import requests
 import time
 
+def validar_recaptcha(request):
+    """
+    Verifica si el reCAPTCHA es válido.
+    """
+    recaptcha_response = request.POST.get('g-recaptcha-response')
+    if not recaptcha_response:
+        return False
+
+    data = {
+        'secret': settings.RECAPTCHA_PRIVATE_KEY,
+        'response': recaptcha_response
+    }
+    response = requests.post(
+        'https://www.google.com/recaptcha/api/siteverify',
+        data=data
+    )
+    result = response.json()
+    return result.get('success', False)
+
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
@@ -27,27 +46,27 @@ def ip_registrada(ip: str) -> bool:
     True si la IP ya está en la BD.
 
     ip
-    returns: bool 
+    returns: bool
     """
     try:
         ContadorIntentos.objects.get(pk=ip)
         return True
     except:
         return False
-    
+
 
 def fecha_en_ventana(fecha, segundos_ventana=settings.SEGUNDOS_INTENTO) -> bool:
     """
     True si la fecha está en la ventana de tiempo.
 
     fecha
-    returns: bool 
+    returns: bool
     """
     actual = datetime.now(timezone.utc)
     diferencia = (actual - fecha).seconds
     return diferencia <= segundos_ventana
-    
-    
+
+
 
 
 def tienes_intentos_login(request) -> bool:
@@ -55,7 +74,7 @@ def tienes_intentos_login(request) -> bool:
     Verdadero si puedes seguir intentando loguearte.
 
     request
-    returns: bool 
+    returns: bool
     """
     ip = get_client_ip(request)
     if not ip_registrada(ip):
@@ -83,12 +102,17 @@ def tienes_intentos_login(request) -> bool:
     registro.ultimo_intento = datetime.now(timezone.utc)
     registro.save()
     return False
-    
+
+
 @csrf_protect
 def login(request):
     if request.method == 'GET':
         a, b = generar_captcha(request)
-        return render(request, 'login.html', {'captcha_a': a, 'captcha_b': b})
+        return render(request, 'login.html', {
+            'captcha_a': a,
+            'captcha_b': b,
+            'RECAPTCHA_PUBLIC_KEY': settings.RECAPTCHA_PUBLIC_KEY
+        })
 
     usuario = request.POST.get('nombre_usuario', '').strip()
     contrasena = request.POST.get('contrasena', '').strip()
@@ -96,11 +120,24 @@ def login(request):
 
     errores = []
 
+    if not tienes_intentos_login(request):
+        errores.append(f'Debes esperar {settings.SEGUNDOS_INTENTO} segundos antes de volver a intentar')
+        a, b = generar_captcha(request)
+        return render(request, 'login.html', {
+            'errores': errores,
+            'captcha_a': a,
+            'captcha_b': b,
+            'RECAPTCHA_PUBLIC_KEY': settings.RECAPTCHA_PUBLIC_KEY
+        })
+
     if not usuario or not contrasena:
         errores.append('Usuario y contraseña son obligatorios.')
 
     if not validar_captcha(request, respuesta):
         errores.append('Captcha incorrecto.')
+
+    if not validar_recaptcha(request):
+        errores.append('Por favor, completa el reCAPTCHA.')
 
     if errores:
         a, b = generar_captcha(request)
@@ -108,15 +145,11 @@ def login(request):
             'errores': errores,
             'captcha_a': a,
             'captcha_b': b,
-            'usuario': usuario
+            'usuario': usuario,
+            'RECAPTCHA_PUBLIC_KEY': settings.RECAPTCHA_PUBLIC_KEY
         })
 
     hash_contrasena = hashlib.sha256(contrasena.encode()).hexdigest()
-
-    if not tienes_intentos_login(request):
-        errores.append('Debes esperar %s segundo antes de volver a intentar' % settings.SEGUNDOS_INTENTO)         
-        return render(request, 'login.html', {'errores': errores})
-
     try:
         usuario_obj = Usuario.objects.get(nombre_usuario=usuario)
         if usuario_obj.contrasena_sha256 == hash_contrasena:
@@ -142,7 +175,8 @@ def login(request):
         'errores': errores,
         'captcha_a': a,
         'captcha_b': b,
-        'usuario': usuario
+        'usuario': usuario,
+        'RECAPTCHA_PUBLIC_KEY': settings.RECAPTCHA_PUBLIC_KEY
     })
 
 def enviar_token_telegram(chat_id, token):

@@ -9,31 +9,29 @@
     
     <form method="post">
       {% csrf_token %}
-      <p><input type="text" name="nombre_usuario" placeholder="Usuario"></p>
+      <p><input type="text" name="nombre_usuario" placeholder="Usuario" value="{{ usuario }}"></p>
       <p><input type="password" name="contrasena" placeholder="Contraseña"></p>
-      <form method="POST">
-    {% csrf_token %}
-
-    <label>Captcha:</label><br>
-  	
-	<label>¿Cuánto es {{ captcha_a }} + {{ captcha_b }}?</label>
-    <input type="text" name="captcha" required><br><br>
-
-    <br><br>
-    <button type="submit">Iniciar sesión</button>
-
-    {% if errores %}
-        <ul style="color: red;">
-            {% for error in errores %}
-                <li>{{ error }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
-</form>
-
       
-    </form>
-  </ul>
-  </div>
-{% endblock %}
+      <label>Captcha:</label><br>
+      <label>¿Cuánto es {{ captcha_a }} + {{ captcha_b }}?</label>
+      <input type="text" name="captcha" required><br><br>
 
+      <!-- Widget de reCAPTCHA -->
+      <div class="g-recaptcha" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}"></div>
+      <br>
+      
+      <button type="submit">Iniciar sesión</button>
+
+      {% if errores %}
+        <ul style="color: red;">
+          {% for error in errores %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Script de reCAPTCHA (debe cargarse) -->
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+{% endblock %}
