@@ -7,31 +7,20 @@ import hashlib, paramiko, os
 from django.conf import settings
 from datetime import datetime
 from datetime import timezone
-from .utils import generar_captcha, validar_captcha
 from django.http import HttpResponse
+from .api.telegram import enviar_token_telegram
+from .api.validarcaptcha import validar_recaptcha
+#from .api.intentos import tienes_intentos_login
 import random
 import string
 import requests
 import time
 
-def validar_recaptcha(request):
-    """
-    Verifica si el reCAPTCHA es válido.
-    """
-    recaptcha_response = request.POST.get('g-recaptcha-response')
-    if not recaptcha_response:
-        return False
 
-    data = {
-        'secret': settings.RECAPTCHA_PRIVATE_KEY,
-        'response': recaptcha_response
-    }
-    response = requests.post(
-        'https://www.google.com/recaptcha/api/siteverify',
-        data=data
-    )
-    result = response.json()
-    return result.get('success', False)
+def enviar_token_telegram(chat_id, token):
+    mensaje = f"Tu token de acceso es: {token}"
+    url = f"https://api.telegram.org/bot{settings.TOKEN_BOT}/sendMessage"
+    requests.post(url, data={'chat_id': chat_id, 'text': mensaje})
 
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -104,13 +93,11 @@ def tienes_intentos_login(request) -> bool:
     return False
 
 
+
 @csrf_protect
 def login(request):
     if request.method == 'GET':
-        a, b = generar_captcha(request)
         return render(request, 'login.html', {
-            'captcha_a': a,
-            'captcha_b': b,
             'RECAPTCHA_PUBLIC_KEY': settings.RECAPTCHA_PUBLIC_KEY
         })
 
@@ -122,29 +109,20 @@ def login(request):
 
     if not tienes_intentos_login(request):
         errores.append(f'Debes esperar {settings.SEGUNDOS_INTENTO} segundos antes de volver a intentar')
-        a, b = generar_captcha(request)
         return render(request, 'login.html', {
             'errores': errores,
-            'captcha_a': a,
-            'captcha_b': b,
             'RECAPTCHA_PUBLIC_KEY': settings.RECAPTCHA_PUBLIC_KEY
         })
 
     if not usuario or not contrasena:
         errores.append('Usuario y contraseña son obligatorios.')
 
-    if not validar_captcha(request, respuesta):
-        errores.append('Captcha incorrecto.')
-
     if not validar_recaptcha(request):
         errores.append('Por favor, completa el reCAPTCHA.')
 
     if errores:
-        a, b = generar_captcha(request)
         return render(request, 'login.html', {
             'errores': errores,
-            'captcha_a': a,
-            'captcha_b': b,
             'usuario': usuario,
             'RECAPTCHA_PUBLIC_KEY': settings.RECAPTCHA_PUBLIC_KEY
         })
@@ -170,19 +148,11 @@ def login(request):
     except Usuario.DoesNotExist:
         errores.append('No existe el usuario.')
 
-    a, b = generar_captcha(request)
     return render(request, 'login.html', {
         'errores': errores,
-        'captcha_a': a,
-        'captcha_b': b,
         'usuario': usuario,
         'RECAPTCHA_PUBLIC_KEY': settings.RECAPTCHA_PUBLIC_KEY
     })
-
-def enviar_token_telegram(chat_id, token):
-    mensaje = f"Tu token de acceso es: {token}"
-    url = f"https://api.telegram.org/bot{settings.TOKEN_BOT}/sendMessage"
-    requests.post(url, data={'chat_id': chat_id, 'text': mensaje})
 
 @csrf_protect
 def segundo_factor(request):
@@ -204,6 +174,7 @@ def segundo_factor(request):
         request.session['usuario'] = usuario_tmp
         return redirect('dashboard')
     else:
+    	request.session.flush()
     	return redirect('login')
 
 def logout_view(request):
@@ -214,3 +185,41 @@ def dashboard(request):
     if not request.session.get('usuario'):
         return redirect('login')
     return render(request, 'dashboard.html', {'section': 'dashboard'})
+    
+
+def registrar_servidor(request):
+    if not request.session.get('usuario'):
+        return redirect('login')
+    if request.method == 'POST':
+        host = request.POST.get('host')
+        usuario = request.POST.get('usuario')
+        contrasena = request.POST.get('contrasena')
+
+        try:
+            # 1. Verificar conexión SSH primero
+            cliente = paramiko.SSHClient()
+            cliente.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            cliente.connect(hostname=host, username=usuario, password=contrasena, timeout=10)
+
+            # 2. Registrar en logs del servidor
+            fecha_actual = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            mensaje = f"Registro en aplicación: {fecha_actual}\n"
+            comando = f'echo "{mensaje}" | sudo tee -a /var/log/administrador.log'
+            cliente.exec_command(comando)
+            cliente.close()
+
+            # 3. Guardar en base de datos (con cifrado)
+            servidor = Servidor()
+            servidor.guardar_datos(host, usuario, contrasena)  # ¡Usa el nuevo método!
+            servidor.save()
+
+            return redirect('dashboard')
+
+        except paramiko.AuthenticationException:
+            return HttpResponse("Error: Credenciales SSH inválidas")
+        except paramiko.SSHException as e:
+            return HttpResponse(f"Error de conexión SSH: {str(e)}")
+        except Exception as error:
+            return HttpResponse(f"Error inesperado: {str(error)}")
+
+    return render(request, 'registrar_servidor.html')

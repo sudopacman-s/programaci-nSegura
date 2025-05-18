@@ -12,9 +12,6 @@
       <p><input type="text" name="nombre_usuario" placeholder="Usuario" value="{{ usuario }}"></p>
       <p><input type="password" name="contrasena" placeholder="Contraseña"></p>
       
-      <label>Captcha:</label><br>
-      <label>¿Cuánto es {{ captcha_a }} + {{ captcha_b }}?</label>
-      <input type="text" name="captcha" required><br><br>
 
       <!-- Widget de reCAPTCHA -->
       <div class="g-recaptcha" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}"></div>

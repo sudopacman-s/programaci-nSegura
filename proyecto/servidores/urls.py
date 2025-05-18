@@ -8,4 +8,5 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('2fa/', views.segundo_factor, name='segundo_factor'),
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('registrar/', views.registrar_servidor, name='registrar'),
 ]
