@@ -9,4 +9,5 @@ urlpatterns = [
     path('2fa/', views.segundo_factor, name='segundo_factor'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('registrar/', views.registrar_servidor, name='registrar'),
+    path('detalle-servidor/', views.detalle_servidor, name='detalle_servidor'),
 ]

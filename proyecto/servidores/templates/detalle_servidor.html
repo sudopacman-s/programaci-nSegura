@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Detalles del Servidor{% endblock %}
+
+{% block content %}
+  <h2 style="margin-bottom: 20px;">Información del Servidor: {{ host }}</h2>
+
+  <pre style="
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    font-family: monospace;
+    font-size: 14px;
+    white-space: pre-wrap;
+    line-height: 1.5;
+  ">{{ info }}</pre>
+
+  <a href="{% url 'dashboard' %}" style="
+    display: inline-block;
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border-radius: 5px;
+    text-decoration: none;
+  ">⬅ Volver al Dashboard</a>
+{% endblock %}
+

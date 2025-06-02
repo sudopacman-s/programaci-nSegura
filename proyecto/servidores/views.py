@@ -184,8 +184,68 @@ def logout_view(request):
 def dashboard(request):
     if not request.session.get('usuario'):
         return redirect('login')
-    return render(request, 'dashboard.html', {'section': 'dashboard'})
+
+    if request.method == 'POST':
+        servidor_id = request.POST.get('servidor_id')
+        request.session['servidor_id'] = servidor_id
+        return redirect('detalle_servidor')
+
+    servidores = Servidor.objects.all()
+    servidores_info = []
+
+    for servidor in servidores:
+        host = servidor.obtener_host()
+        # Comprobación de disponibilidad con ping
+        try:
+            resultado_ping = subprocess.run(
+                ['ping', '-c', '1', host],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            activo = resultado_ping.returncode == 0
+        except Exception:
+            activo = False
+
+        servidores_info.append({
+            'id': servidor.id,
+            'host': host,
+            'activo': activo
+        })
+
+    return render(request, 'dashboard.html', {'servidores': servidores_info})
     
+def detalle_servidor(request):
+    if not request.session.get('usuario'):
+        return redirect('login')
+
+    servidor_id = request.session.get('servidor_id')
+    if not servidor_id:
+        return redirect('dashboard')
+
+    try:
+        servidor = Servidor.objects.get(pk=servidor_id)
+        host = servidor.obtener_host()
+        usuario = servidor.obtener_usuario()
+        contrasena = servidor.obtener_contrasena()
+
+        cliente = paramiko.SSHClient()
+        cliente.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        cliente.connect(hostname=host, username=usuario, password=contrasena, timeout=10)
+
+        stdin, stdout, stderr = cliente.exec_command('uname -a && uptime && whoami')
+        salida = stdout.read().decode()
+        cliente.close()
+
+        return render(request, 'detalle_servidor.html', {
+            'host': host,
+            'info': salida
+        })
+
+    except Servidor.DoesNotExist:
+        return HttpResponse("Servidor no encontrado.")
+    except Exception as e:
+        return HttpResponse(f"Error al conectar: {str(e)}")
+
 
 def registrar_servidor(request):
     if not request.session.get('usuario'):
