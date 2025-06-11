@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+  <h2 style="margin-bottom: 20px;">Servidores Registrados</h2>
+  
+  
+<!-- Botón circular con ícono 📝 -->
+<a href="{% url 'registrar' %}" class="boton-circular" title="Registrar nuevo">
+    📝
+</a>
+
+
+  <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+    {% for servidor in servidores %}
+      <form method="post" style="margin: 0;">
+        {% csrf_token %}
+        <input type="hidden" name="servidor_id" value="{{ servidor.id }}">
+        <button type="submit" style="
+          width: 200px;
+          height: 120px;
+          border-radius: 10px;
+          border: none;
+          background-color: {% if servidor.activo %}#28a745{% else %}#dc3545{% endif %};
+          color: white;
+          font-size: 16px;
+          font-weight: bold;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          cursor: pointer;
+          transition: transform 0.2s ease;
+        " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+          {{ servidor.host }}<br>
+          {% if servidor.activo %}🟢 Activo{% else %}🔴 Inactivo{% endif %}
+        </button>
+      </form>
+    {% endfor %}
+  </div>
+{% endblock %}
+

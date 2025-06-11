@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Log-in{% endblock %}
+{% block content %}
+  <div class="form-container">
+    <img src="{% static 'imagenes/NOKOTAN.png' %}" alt="Logo" class="form-logo">
+    <h1>Log-in</h1>
+    <p>Por favor, inicia sesión:</p>
+    
+    <form method="post">
+      {% csrf_token %}
+      <p><input type="text" name="nombre_usuario" placeholder="Usuario" value="{{ usuario }}"></p>
+      <p><input type="password" name="contrasena" placeholder="Contraseña"></p>
+      
+
+      <!-- Widget de reCAPTCHA -->
+      <div class="g-recaptcha" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY }}"></div>
+      <br>
+      
+      <button type="submit">Iniciar sesión</button>
+
+      {% if errores %}
+        <ul style="color: red;">
+          {% for error in errores %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Script de reCAPTCHA (debe cargarse) -->
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+{% endblock %}
