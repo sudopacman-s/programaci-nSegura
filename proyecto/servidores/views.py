@@ -10,6 +10,7 @@ from datetime import timezone
 from django.http import HttpResponse
 from .api.telegram import enviar_token_telegram
 from .api.validarcaptcha import validar_recaptcha
+from .api.hasheador import hashing
 #from .api.intentos import tienes_intentos_login
 import random
 import string
@@ -127,7 +128,7 @@ def login(request):
             'RECAPTCHA_PUBLIC_KEY': settings.RECAPTCHA_PUBLIC_KEY
         })
 
-    hash_contrasena = hashlib.sha256(contrasena.encode()).hexdigest()
+    hash_contrasena = hashing(contrasena)
     try:
         usuario_obj = Usuario.objects.get(nombre_usuario=usuario)
         if usuario_obj.contrasena_sha256 == hash_contrasena:
