@@ -18,15 +18,15 @@ COPY start.sh /start
 
 RUN chmod +x /start/start.sh
 
-RUN mkdir /prueba  # Asegurando que el nombre del directorio es /prueba
+RUN mkdir /prueba 
 
-RUN groupadd -g 994 docker
-RUN useradd -u 1000 miguel -ms /bin/bash
-RUN chown miguel:miguel -R /prueba  # Usando /prueba en lugar de /pruebas
+#RUN groupadd -g 994 docker
+#RUN useradd -u 1000 miguel -ms /bin/bash
+#RUN chown miguel:miguel -R /prueba 
+RUN useradd miguel -s /bin/bash
 
+#RUN usermod -aG docker miguel
 
-RUN usermod -aG docker miguel
-
-USER root
+USER miguel
 
 CMD ["bash","/start/start.sh"]

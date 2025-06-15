@@ -1,0 +1,9 @@
+django==5.1.5
+reCAPTCHA
+paramiko
+cryptography
+mysqlclient
+hashlib
+bcrypt
+pandas
+gunicorn

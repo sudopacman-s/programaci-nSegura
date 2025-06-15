@@ -214,7 +214,8 @@ def dashboard(request):
         })
 
     return render(request, 'dashboard.html', {'servidores': servidores_info})
-    
+
+@csrf_protect
 def detalle_servidor(request):
     if not request.session.get('usuario'):
         return redirect('login')
@@ -233,13 +234,43 @@ def detalle_servidor(request):
         cliente.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         cliente.connect(hostname=host, username=usuario, password=contrasena, timeout=10)
 
+        salida_info = ""
+        error_instalacion = ""
+
+        if request.method == 'POST':
+            servicio = request.POST.get('servicio', '').strip()
+
+            if servicio:
+                # 1. Verificar si el servicio está instalado (status o which)
+                comando_check = f"systemctl status {servicio}"
+                stdin, stdout, stderr = cliente.exec_command(comando_check)
+                resultado_check = stdout.read().decode()
+                errores_check = stderr.read().decode()
+
+                if "could not be found" in errores_check or "Loaded: not-found" in resultado_check:
+                    # No está instalado, intentar instalar
+                    comando_instalar = f"echo '{contrasena}' | sudo -S apt update && echo '{contrasena}' | sudo -S apt install -y {servicio}"
+                    stdin, stdout, stderr = cliente.exec_command(comando_instalar)
+                    salida_instalacion = stdout.read().decode()
+                    error_instalacion = stderr.read().decode()
+
+                # 2. Intentar iniciar el servicio
+                comando_start = f"echo '{contrasena}' | sudo -S systemctl start {servicio}"
+                stdin, stdout, stderr = cliente.exec_command(comando_start)
+                salida_servicio = stdout.read().decode()
+                errores_servicio = stderr.read().decode()
+
+                salida_info = f"Resultado de instalación:\n{error_instalacion}\n\nResultado al iniciar {servicio}:\n{salida_servicio or errores_servicio}"
+
+        # Mostrar info del sistema
         stdin, stdout, stderr = cliente.exec_command('uname -a && uptime && whoami')
-        salida = stdout.read().decode()
+        info = stdout.read().decode()
         cliente.close()
 
         return render(request, 'detalle_servidor.html', {
             'host': host,
-            'info': salida
+            'info': info,
+            'salida_servicio': salida_info
         })
 
     except Servidor.DoesNotExist:
@@ -284,3 +315,51 @@ def registrar_servidor(request):
             return HttpResponse(f"Error inesperado: {str(error)}")
 
     return render(request, 'registrar_servidor.html')
+
+def iniciar_servicio(request):
+    if not request.session.get('usuario'):
+        return redirect('login')
+
+    servidor_id = request.session.get('servidor_id')
+    if not servidor_id:
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        nombre_servicio = request.POST.get('nombre_servicio', '').strip()
+        if not nombre_servicio:
+            return HttpResponse("Debes ingresar un nombre de servicio.")
+
+        try:
+            servidor = Servidor.objects.get(pk=servidor_id)
+            host = servidor.obtener_host()
+            usuario = servidor.obtener_usuario()
+            contrasena = servidor.obtener_contrasena()
+
+            cliente = paramiko.SSHClient()
+            cliente.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            cliente.connect(hostname=host, username=usuario, password=contrasena, timeout=10)
+
+            # Comandos a ejecutar: instalar y luego iniciar el servicio
+            comandos = [
+                f"echo '{contrasena}' | sudo -S apt update",
+                f"echo '{contrasena}' | sudo -S apt install -y {nombre_servicio}",
+                f"echo '{contrasena}' | sudo -S systemctl start {nombre_servicio}"
+            ]
+
+            salida_total = ""
+
+            for comando in comandos:
+                stdin, stdout, stderr = cliente.exec_command(comando)
+                salida = stdout.read().decode() + stderr.read().decode()
+                salida_total += f"$ {comando}\n{salida}\n"
+
+            cliente.close()
+
+            return HttpResponse(
+                f"<h3>Resultado al instalar e iniciar <code>{nombre_servicio}</code>:</h3>"
+                f"<pre>{salida_total}</pre><a href='/dashboard'>Volver</a>"
+            )
+
+        except Exception as e:
+            return HttpResponse(f"Error: {str(e)}")
+

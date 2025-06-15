@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Servicios activos{% endblock %}
+
+{% block content %}
+  <h2>Servicios activos</h2>
+  <ul>
+    {% for servicio in servicios %}
+      <li>
+        {{ servicio }}
+        <form method="post" action="{% url 'controlar_servicio' %}" style="display:inline;">
+          {% csrf_token %}
+          <input type="hidden" name="servicio" value="{{ servicio }}">
+          <button name="accion" value="reiniciar">🔄 Reiniciar</button>
+          <button name="accion" value="detener">⛔ Detener</button>
+        </form>
+      </li>
+    {% empty %}
+      <li>No hay servicios activos.</li>
+    {% endfor %}
+  </ul>
+  <a href="{% url 'dashboard' %}">← Volver al Dashboard</a>
+{% endblock %}
+

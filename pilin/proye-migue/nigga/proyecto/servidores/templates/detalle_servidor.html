@@ -4,6 +4,30 @@
 
 {% block content %}
   <h2 style="margin-bottom: 20px;">Información del Servidor: {{ host }}</h2>
+  <h2>Levantar Servicio</h2>
+  <form method="post" action="{% url 'iniciar_servicio' %}">
+    {% csrf_token %}
+    <input type="text" name="nombre_servicio" placeholder="Ej: nginx, docker, apache2" required>
+    <button type="submit" style="background-color: green; color: white;">🔌 Levantar</button>
+  </form>
+  <h2 style="margin-top: 40px;">Servicios Activos</h2>
+  {% if servicios_activos %}
+    <ul>
+      {% for servicio in servicios_activos %}
+        <li style="margin-bottom: 10px;">
+          <strong>{{ servicio }}</strong>
+          <form method="post" action="{% url 'accion_servicio' %}" style="display: inline;">
+            {% csrf_token %}
+            <input type="hidden" name="nombre_servicio" value="{{ servicio }}">
+            <button name="accion" value="reiniciar" style="color: orange;">🔁 Reiniciar</button>
+            <button name="accion" value="detener" style="color: red;">⛔ Detener</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No hay servicios activos.</p>
+  {% endif %}
 
   <pre style="
     background-color: #f8f9fa;
