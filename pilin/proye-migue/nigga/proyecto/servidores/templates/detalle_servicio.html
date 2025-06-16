@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Detalle de {{ nombre_servicio }}{% endblock %}
+{% block content %}
+
+<h2>Servicio: {{ nombre_servicio }}</h2>
+
+<form method="post">
+  {% csrf_token %}
+  <input type="password" name="sudo_password" placeholder="Contraseña sudo" required>
+  <button name="accion" value="stop">Detener</button>
+  <button name="accion" value="restart">Reiniciar</button>
+  <button name="accion" value="start">Encender</button>
+</form>
+
+<hr>
+
+<pre style="background:#f2f2f2; padding:1rem; border-radius:0.5rem;">
+{{ info_servicio }}
+</pre>
+
+<p><a href="{% url 'detalle_servidor' %}">← Volver a servicios</a></p>
+
+{% if messages %}
+  <ul class="messages">
+    {% for m in messages %}
+      <li class="{{ m.tags }}">{{ m }}</li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
+{% endblock %}
+

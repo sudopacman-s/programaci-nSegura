@@ -1,52 +1,41 @@
-{% extends 'base.html' %}
-
-{% block title %}Detalles del Servidor{% endblock %}
-
+{% extends "base.html" %}
+{% block title %}Detalle del Servidor{% endblock %}
 {% block content %}
-  <h2 style="margin-bottom: 20px;">Información del Servidor: {{ host }}</h2>
-  <h2>Levantar Servicio</h2>
-  <form method="post" action="{% url 'iniciar_servicio' %}">
-    {% csrf_token %}
-    <input type="text" name="nombre_servicio" placeholder="Ej: nginx, docker, apache2" required>
-    <button type="submit" style="background-color: green; color: white;">🔌 Levantar</button>
-  </form>
-  <h2 style="margin-top: 40px;">Servicios Activos</h2>
-  {% if servicios_activos %}
-    <ul>
-      {% for servicio in servicios_activos %}
-        <li style="margin-bottom: 10px;">
-          <strong>{{ servicio }}</strong>
-          <form method="post" action="{% url 'accion_servicio' %}" style="display: inline;">
-            {% csrf_token %}
-            <input type="hidden" name="nombre_servicio" value="{{ servicio }}">
-            <button name="accion" value="reiniciar" style="color: orange;">🔁 Reiniciar</button>
-            <button name="accion" value="detener" style="color: red;">⛔ Detener</button>
-          </form>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>No hay servicios activos.</p>
-  {% endif %}
 
-  <pre style="
-    background-color: #f8f9fa;
-    padding: 15px;
-    border-radius: 8px;
-    font-family: monospace;
-    font-size: 14px;
-    white-space: pre-wrap;
-    line-height: 1.5;
-  ">{{ info }}</pre>
+<h2>Levantar servicio</h2>
+<form method="post">
+  {% csrf_token %}
+  <input type="text" name="nombre_servicio" placeholder="apache2.service" required>
+  <input type="password" name="sudo_password" placeholder="Contraseña sudo" required>
+  <button type="submit">Levantar</button>
+</form>
 
-  <a href="{% url 'dashboard' %}" style="
-    display: inline-block;
-    margin-top: 20px;
-    padding: 10px 20px;
-    background-color: #007bff;
-    color: white;
-    border-radius: 5px;
-    text-decoration: none;
-  ">⬅ Volver al Dashboard</a>
+<hr>
+
+<h2>Servicios activos</h2>
+<ul>
+  {% for s in servicios %}
+    <li>
+      <form method="post" action="{% url 'detalle_servicio' %}" style="display:inline;">
+        {% csrf_token %}
+        <input type="hidden" name="servicio" value="{{ s }}">
+        <button type="submit" style="background:none;border:none;color:blue;cursor:pointer;">
+          {{ s }}
+        </button>
+      </form>
+    </li>
+  {% empty %}
+    <li>No hay servicios activos.</li>
+  {% endfor %}
+</ul>
+
+{% if messages %}
+  <ul class="messages">
+    {% for m in messages %}
+      <li class="{{ m.tags }}">{{ m }}</li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
 {% endblock %}
 

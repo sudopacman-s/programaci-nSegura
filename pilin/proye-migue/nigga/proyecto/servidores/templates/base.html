@@ -9,10 +9,12 @@
 <body>
   <div id="header">
     <span class="logo">Programación segura</span>
+    <a href="{% url "logout" %}">Salir</a>
     {% if request.user.is_authenticated %}
       <ul class="menu">
         <li {% if section == "dashboard" %}class="selected"{% endif %}>
           <a href="{% url "dashboard" %}">Dashboard</a>
+
         </li>
       </ul>
     {% endif %}

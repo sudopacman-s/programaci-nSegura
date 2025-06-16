@@ -12,11 +12,15 @@ from .api.telegram import enviar_token_telegram
 from .api.validarcaptcha import validar_recaptcha
 from .api.hasheador import hashing
 #from .api.intentos import tienes_intentos_login
+import re
+
 import random
 import string
 import requests
 import time
 
+# Permitir solo nombres válidos de servicios (evita inyección)
+SERVICIO_REGEX = re.compile(r'^[a-zA-Z0-9_.@-]+\.service$')
 
 def enviar_token_telegram(chat_id, token):
     mensaje = f"Tu token de acceso es: {token}"
@@ -182,102 +186,145 @@ def logout_view(request):
     request.session.flush()
     return redirect('login')
 
+def ejecutar_comando_ssh(host, usuario, contrasena, comando, sudo_pass=None):
+    try:
+        cli = paramiko.SSHClient()
+        cli.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        cli.connect(hostname=host, username=usuario, password=contrasena, timeout=5)
+        if sudo_pass:
+            comando = f"echo '{sudo_pass}' | sudo -S {comando}"
+        stdin, stdout, stderr = cli.exec_command(comando, timeout=10)
+        out = stdout.read().decode().strip()
+        err = stderr.read().decode().strip()
+        cli.close()
+        return out, err
+    except Exception as e:
+        return "", f"Error SSH: {e}"
+
 def dashboard(request):
     if not request.session.get('usuario'):
         return redirect('login')
 
     if request.method == 'POST':
-        servidor_id = request.POST.get('servidor_id')
-        request.session['servidor_id'] = servidor_id
+        request.session['servidor_id'] = request.POST['servidor_id']
+        request.session.pop('servicio_seleccionado', None)
         return redirect('detalle_servidor')
 
-    servidores = Servidor.objects.all()
-    servidores_info = []
+    info = []
+    for s in Servidor.objects.all():
+        host = s.obtener_host()
+        activo = subprocess.run(['ping','-c','1',host],
+                                 stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL).returncode == 0
+        info.append({'id': s.id, 'host': host, 'activo': activo})
+    return render(request, 'dashboard.html', {'servidores': info})
 
-    for servidor in servidores:
-        host = servidor.obtener_host()
-        # Comprobación de disponibilidad con ping
-        try:
-            resultado_ping = subprocess.run(
-                ['ping', '-c', '1', host],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
-            activo = resultado_ping.returncode == 0
-        except Exception:
-            activo = False
-
-        servidores_info.append({
-            'id': servidor.id,
-            'host': host,
-            'activo': activo
-        })
-
-    return render(request, 'dashboard.html', {'servidores': servidores_info})
-
-@csrf_protect
 def detalle_servidor(request):
     if not request.session.get('usuario'):
         return redirect('login')
-
-    servidor_id = request.session.get('servidor_id')
-    if not servidor_id:
+    sid = request.session.get('servidor_id')
+    if not sid:
         return redirect('dashboard')
 
     try:
-        servidor = Servidor.objects.get(pk=servidor_id)
-        host = servidor.obtener_host()
-        usuario = servidor.obtener_usuario()
-        contrasena = servidor.obtener_contrasena()
-
-        cliente = paramiko.SSHClient()
-        cliente.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        cliente.connect(hostname=host, username=usuario, password=contrasena, timeout=10)
-
-        salida_info = ""
-        error_instalacion = ""
-
-        if request.method == 'POST':
-            servicio = request.POST.get('servicio', '').strip()
-
-            if servicio:
-                # 1. Verificar si el servicio está instalado (status o which)
-                comando_check = f"systemctl status {servicio}"
-                stdin, stdout, stderr = cliente.exec_command(comando_check)
-                resultado_check = stdout.read().decode()
-                errores_check = stderr.read().decode()
-
-                if "could not be found" in errores_check or "Loaded: not-found" in resultado_check:
-                    # No está instalado, intentar instalar
-                    comando_instalar = f"echo '{contrasena}' | sudo -S apt update && echo '{contrasena}' | sudo -S apt install -y {servicio}"
-                    stdin, stdout, stderr = cliente.exec_command(comando_instalar)
-                    salida_instalacion = stdout.read().decode()
-                    error_instalacion = stderr.read().decode()
-
-                # 2. Intentar iniciar el servicio
-                comando_start = f"echo '{contrasena}' | sudo -S systemctl start {servicio}"
-                stdin, stdout, stderr = cliente.exec_command(comando_start)
-                salida_servicio = stdout.read().decode()
-                errores_servicio = stderr.read().decode()
-
-                salida_info = f"Resultado de instalación:\n{error_instalacion}\n\nResultado al iniciar {servicio}:\n{salida_servicio or errores_servicio}"
-
-        # Mostrar info del sistema
-        stdin, stdout, stderr = cliente.exec_command('uname -a && uptime && whoami')
-        info = stdout.read().decode()
-        cliente.close()
-
-        return render(request, 'detalle_servidor.html', {
-            'host': host,
-            'info': info,
-            'salida_servicio': salida_info
-        })
-
+        s = Servidor.objects.get(pk=sid)
     except Servidor.DoesNotExist:
-        return HttpResponse("Servidor no encontrado.")
-    except Exception as e:
-        return HttpResponse(f"Error al conectar: {str(e)}")
+        messages.error(request, "Servidor no encontrado.")
+        return redirect('dashboard')
 
+    servidor = {
+        'host': s.obtener_host(),
+        'usuario': s.obtener_usuario(),
+        'contrasena': s.obtener_contrasena()
+    }
+
+    # Levantar servicio (POST desde este mismo template)
+    if request.method == 'POST' and 'nombre_servicio' in request.POST:
+        nombre = request.POST['nombre_servicio'].strip()
+        sudo_pwd = request.POST.get('sudo_password','').strip()
+        if not SERVICIO_REGEX.match(nombre):
+            messages.error(request, "Servicio inválido.")
+        elif not sudo_pwd:
+            messages.error(request, "Contraseña sudo requerida.")
+        else:
+            _, err = ejecutar_comando_ssh(**servidor,
+                comando=f"systemctl start {nombre}", sudo_pass=sudo_pwd)
+            if err:
+                messages.error(request, f"No arrancó {nombre}: {err}")
+            else:
+                messages.success(request, f"{nombre} arrancado.")
+        return redirect('detalle_servidor')
+
+    # Listar servicios activos
+    out, err = ejecutar_comando_ssh(**servidor,
+        comando="systemctl list-units --type=service --state=active --no-pager --no-legend | awk '{print $1}'")
+    servicios = out.splitlines() if out else []
+    if err:
+        messages.error(request, "No pude listar servicios.")
+
+    return render(request, 'detalle_servidor.html', {
+        'servicios': servicios
+    })
+
+def detalle_servicio(request):
+    if not request.session.get('usuario'):
+        return redirect('login')
+    sid = request.session.get('servidor_id')
+    if not sid:
+        return redirect('dashboard')
+
+    # Si vienen aquí seleccionando un servicio:
+    if request.method == 'POST' and 'servicio' in request.POST:
+        srv = request.POST['servicio'].strip()
+        if SERVICIO_REGEX.match(srv):
+            request.session['servicio_seleccionado'] = srv
+        else:
+            messages.error(request, "Servicio inválido.")
+        return redirect('detalle_servicio')
+
+    # Ahora, control de start/stop/restart:
+    srv = request.session.get('servicio_seleccionado')
+    if not srv:
+        return redirect('detalle_servidor')
+
+    try:
+        s = Servidor.objects.get(pk=sid)
+    except Servidor.DoesNotExist:
+        return redirect('dashboard')
+
+    servidor = {
+        'host': s.obtener_host(),
+        'usuario': s.obtener_usuario(),
+        'contrasena': s.obtener_contrasena()
+    }
+
+    # Acción sobre el servicio
+    if request.method == 'POST' and 'accion' in request.POST:
+        accion = request.POST['accion']
+        sudo_pwd = request.POST.get('sudo_password','').strip()
+        if accion not in ['start','stop','restart']:
+            messages.error(request, "Acción no permitida.")
+        elif not sudo_pwd:
+            messages.error(request, "Contraseña sudo requerida.")
+        else:
+            _, err = ejecutar_comando_ssh(**servidor,
+                comando=f"systemctl {accion} {srv}", sudo_pass=sudo_pwd)
+            if err:
+                messages.error(request, f"No pudo {accion} {srv}: {err}")
+            else:
+                messages.success(request, f"{srv}: {accion} ejecutado.")
+        return redirect('detalle_servicio')
+
+    # GET: mostrar estado
+    info, err = ejecutar_comando_ssh(**servidor,
+        comando=f"systemctl status {srv} --no-pager")
+    if err:
+        info = f"Error al obtener estado: {err}"
+
+    return render(request, 'detalle_servicio.html', {
+        'nombre_servicio': srv,
+        'info_servicio': info
+    })
 
 def registrar_servidor(request):
     if not request.session.get('usuario'):
@@ -315,51 +362,3 @@ def registrar_servidor(request):
             return HttpResponse(f"Error inesperado: {str(error)}")
 
     return render(request, 'registrar_servidor.html')
-
-def iniciar_servicio(request):
-    if not request.session.get('usuario'):
-        return redirect('login')
-
-    servidor_id = request.session.get('servidor_id')
-    if not servidor_id:
-        return redirect('dashboard')
-
-    if request.method == 'POST':
-        nombre_servicio = request.POST.get('nombre_servicio', '').strip()
-        if not nombre_servicio:
-            return HttpResponse("Debes ingresar un nombre de servicio.")
-
-        try:
-            servidor = Servidor.objects.get(pk=servidor_id)
-            host = servidor.obtener_host()
-            usuario = servidor.obtener_usuario()
-            contrasena = servidor.obtener_contrasena()
-
-            cliente = paramiko.SSHClient()
-            cliente.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            cliente.connect(hostname=host, username=usuario, password=contrasena, timeout=10)
-
-            # Comandos a ejecutar: instalar y luego iniciar el servicio
-            comandos = [
-                f"echo '{contrasena}' | sudo -S apt update",
-                f"echo '{contrasena}' | sudo -S apt install -y {nombre_servicio}",
-                f"echo '{contrasena}' | sudo -S systemctl start {nombre_servicio}"
-            ]
-
-            salida_total = ""
-
-            for comando in comandos:
-                stdin, stdout, stderr = cliente.exec_command(comando)
-                salida = stdout.read().decode() + stderr.read().decode()
-                salida_total += f"$ {comando}\n{salida}\n"
-
-            cliente.close()
-
-            return HttpResponse(
-                f"<h3>Resultado al instalar e iniciar <code>{nombre_servicio}</code>:</h3>"
-                f"<pre>{salida_total}</pre><a href='/dashboard'>Volver</a>"
-            )
-
-        except Exception as e:
-            return HttpResponse(f"Error: {str(e)}")
-

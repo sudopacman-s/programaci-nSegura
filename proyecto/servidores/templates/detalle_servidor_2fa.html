@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Confirma Acción{% endblock %}
+{% block content %}
+  <h2>Ingresa el token (120 s)</h2>
+  {% for m in messages %}<p style="color:red">{{ m }}</p>{% endfor %}
+  <form method="post">
+    {% csrf_token %}
+    <input name="token" placeholder="Token 2FA" required>
+    <button type="submit">Validar</button>
+  </form>
+{% endblock %}
+
