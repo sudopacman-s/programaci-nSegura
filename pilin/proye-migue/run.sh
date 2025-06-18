@@ -42,17 +42,17 @@ unset contrasena
 # Procesar contenido y exportar variables
 while IFS= read -r linea; do
     [[ -z "$linea" || "$linea" =~ ^\s*# ]] && continue  # Saltar líneas vacías/comentarios
-    
+
     # Eliminar espacios alrededor del igual y comillas
     clave_valor=$(echo "$linea" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^export[[:space:]]*//')
     clave="${clave_valor%%=*}"
     valor="${clave_valor#*=}"
-    echo $clave
-    echo $valor
-    
+   # echo $clave
+    #echo $valor
+
     # Eliminar comillas circundantes si existen
     valor=$(echo "$valor" | sed -e "s/^['\"]//" -e "s/['\"]$//")
-    
+
     # Exportar variable de entorno
     export "$clave"="$valor"
 done <<< "$CONTENIDO_ENV"

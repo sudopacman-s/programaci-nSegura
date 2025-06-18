@@ -1,5 +1,4 @@
 import requests
-#from django.conf import settings
 from django.conf import settings
 
 def enviar_token_telegram(chat_id, token):

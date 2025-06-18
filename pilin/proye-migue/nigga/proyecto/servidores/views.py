@@ -101,6 +101,10 @@ def tienes_intentos_login(request) -> bool:
 
 @csrf_protect
 def login(request):
+    """
+    Funcion login para autenticar usuario mediante credenciales,
+    captcha y OTP, implementando límite de intentos.
+    """
     if request.method == 'GET':
         return render(request, 'login.html', {
             'RECAPTCHA_PUBLIC_KEY': settings.RECAPTCHA_PUBLIC_KEY
@@ -161,6 +165,9 @@ def login(request):
 
 @csrf_protect
 def segundo_factor(request):
+    """
+    Funcion para enviar  y verificar token OTP enviado por telegram.
+    """
     usuario_tmp = request.session.get('usuario_tmp')
     token_valido = request.session.get('token_2fa')
     expira = request.session.get('expira_2fa')
@@ -183,10 +190,16 @@ def segundo_factor(request):
     	return redirect('login')
 
 def logout_view(request):
+    """
+    Funcion para eliminar la sesión y cerrarla, redirige a login.
+    """
     request.session.flush()
     return redirect('login')
 
 def ejecutar_comando_ssh(host, usuario, contrasena, comando, sudo_pass=None):
+    """
+    Funcion para ejecutar comandos en servidor remoto.
+    """
     try:
         cli = paramiko.SSHClient()
         cli.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -202,6 +215,9 @@ def ejecutar_comando_ssh(host, usuario, contrasena, comando, sudo_pass=None):
         return "", f"Error SSH: {e}"
 
 def dashboard(request):
+    """
+    Funcion para probar conexión con servidores remotos y mostrarlos en la pagina principal.
+    """
     if not request.session.get('usuario'):
         return redirect('login')
 
@@ -220,6 +236,10 @@ def dashboard(request):
     return render(request, 'dashboard.html', {'servidores': info})
 
 def detalle_servidor(request):
+    """
+    Muestre detalles del servidor, así como los servicios y campo para levantar servicio.
+    Lista todos los servicios filtrados activos.
+    """
     if not request.session.get('usuario'):
         return redirect('login')
     sid = request.session.get('servidor_id')
@@ -267,6 +287,9 @@ def detalle_servidor(request):
     })
 
 def detalle_servicio(request):
+    """
+    Funcion que muestra detalles de cada servicio, así como posibilidad de detenerlo, reiniciarlo o encenderlo.
+    """
     if not request.session.get('usuario'):
         return redirect('login')
     sid = request.session.get('servidor_id')
@@ -327,6 +350,13 @@ def detalle_servicio(request):
     })
 
 def registrar_servidor(request):
+    """
+    Funcion para registrar un nuevo servidor mediante un formulario.
+
+    IP
+    Usuario: str
+    Contraseña: str
+    """
     if not request.session.get('usuario'):
         return redirect('login')
     if request.method == 'POST':

@@ -1,6 +1,7 @@
 FROM python:latest
 
 RUN apt-get update && apt-get install -y default-mysql-client
+RUN apt-get install -y iputils-ping
 
 RUN mkdir /code
 WORKDIR /code
