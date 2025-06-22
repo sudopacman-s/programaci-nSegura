@@ -1,0 +1,113 @@
+18-Jun-25 23:14:16 - INFO - Usuario admin loggeado
+18-Jun-25 23:24:56 - INFO - Usuario admin loggeado
+18-Jun-25 23:32:31 - INFO - Usuario admin loggeado
+18-Jun-25 23:33:59 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:33:59 - INFO - Authentication (password) successful!
+18-Jun-25 23:33:59 - INFO - Servidor 192.168.1.68 registrado
+18-Jun-25 23:34:44 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:34:44 - INFO - Authentication (password) successful!
+18-Jun-25 23:34:56 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:34:56 - INFO - Authentication (password) successful!
+18-Jun-25 23:34:56 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:34:56 - INFO - Authentication (password) successful!
+18-Jun-25 23:36:45 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:36:45 - INFO - Authentication (password) successful!
+18-Jun-25 23:36:45 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:36:45 - INFO - Authentication (password) successful!
+18-Jun-25 23:36:52 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:36:52 - INFO - Authentication (password) successful!
+18-Jun-25 23:37:34 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:37:34 - INFO - Authentication (password) successful!
+18-Jun-25 23:37:46 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:37:46 - INFO - Authentication (password) successful!
+18-Jun-25 23:37:46 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:37:46 - INFO - Authentication (password) successful!
+18-Jun-25 23:38:22 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:38:22 - INFO - Authentication (password) successful!
+18-Jun-25 23:38:22 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:38:22 - INFO - Authentication (password) successful!
+18-Jun-25 23:39:44 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:39:44 - INFO - Authentication (password) successful!
+18-Jun-25 23:40:33 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:40:33 - INFO - Authentication (password) successful!
+18-Jun-25 23:40:43 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:40:43 - INFO - Authentication (password) successful!
+18-Jun-25 23:40:43 - ERROR - Internal Server Error: /detalle-servicio/
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/usr/local/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/code/servidores/views.py", line 343, in detalle_servicio
+    logging.info(f'Servicio {srv} {accion} en host: {servidor.host}')
+                                                     ^^^^^^^^^^^^^
+AttributeError: 'dict' object has no attribute 'host'
+18-Jun-25 23:43:00 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:43:00 - INFO - Authentication (password) successful!
+18-Jun-25 23:43:01 - ERROR - Internal Server Error: /detalle-servicio/
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/usr/local/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/code/servidores/views.py", line 343, in detalle_servicio
+    logging.info(f'Servicio {srv} {accion} en host: {host.servidor}')
+                                                     ^^^^
+NameError: name 'host' is not defined
+18-Jun-25 23:43:09 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:43:09 - INFO - Authentication (password) successful!
+18-Jun-25 23:43:09 - INFO - Servicio apache2.service stop en host: 192-168-1-68_debian
+18-Jun-25 23:43:09 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:43:09 - INFO - Authentication (password) successful!
+18-Jun-25 23:46:09 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:46:09 - INFO - Authentication (password) successful!
+18-Jun-25 23:46:20 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:46:20 - INFO - Authentication (password) successful!
+18-Jun-25 23:46:20 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:46:20 - INFO - Authentication (password) successful!
+18-Jun-25 23:46:56 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:46:56 - INFO - Authentication (password) successful!
+18-Jun-25 23:47:04 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:47:04 - INFO - Authentication (password) successful!
+18-Jun-25 23:47:04 - INFO - Servicio smbd.service stop en host: 192-168-1-68_debian
+18-Jun-25 23:47:04 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:47:04 - INFO - Authentication (password) successful!
+18-Jun-25 23:47:11 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:47:11 - INFO - Authentication (password) successful!
+18-Jun-25 23:47:24 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:47:24 - INFO - Authentication (password) successful!
+18-Jun-25 23:47:24 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:47:24 - INFO - Authentication (password) successful!
+18-Jun-25 23:47:53 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:47:53 - INFO - Authentication (password) successful!
+18-Jun-25 23:48:00 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:48:00 - INFO - Authentication (password) successful!
+18-Jun-25 23:48:05 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:48:06 - INFO - Authentication (password) successful!
+18-Jun-25 23:48:06 - INFO - Servicio apache2.service stop en host: 192-168-1-68_debian
+18-Jun-25 23:48:06 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:48:06 - INFO - Authentication (password) successful!
+18-Jun-25 23:48:08 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:48:08 - INFO - Authentication (password) successful!
+18-Jun-25 23:48:20 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:48:21 - INFO - Authentication (password) successful!
+18-Jun-25 23:48:21 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+18-Jun-25 23:48:21 - INFO - Authentication (password) successful!
+19-Jun-25 18:59:46 - WARNING - Not Found: /favicon.ico
+19-Jun-25 19:12:27 - INFO - Usuario admin loggeado
+19-Jun-25 19:23:54 - INFO - Servicio apache2.service stop en host: 192.168.1.68
+19-Jun-25 19:24:24 - INFO - Servicio apache2.service start en host: 192.168.1.68
+19-Jun-25 19:24:35 - INFO - Servicio apache2.service restart en host: 192.168.1.68
+19-Jun-25 19:24:59 - INFO - Servicio smbd.service stop en host: 192.168.1.68
+19-Jun-25 19:25:33 - INFO - Servicio smbd.service stop en host: 192.168.1.68
+19-Jun-25 19:29:44 - INFO - Servicio smbd.service levantado en host: 192.168.1.68
+19-Jun-25 19:37:51 - INFO - Servidor 192.168.1.100 registrado
+19-Jun-25 19:38:58 - INFO - Servicio apache2.service stop en host: 192.168.1.100
+19-Jun-25 19:39:27 - INFO - Servicio apache2.service stop en host: 192.168.1.100
+19-Jun-25 19:39:52 - INFO - Servicio apache2.service restart en host: 192.168.1.100
+19-Jun-25 19:40:04 - INFO - Servicio apache2.service stop en host: 192.168.1.100
+19-Jun-25 19:48:19 - INFO - Servicio apache2.service stop en host: 192.168.1.100
+19-Jun-25 19:49:21 - INFO - Servicio apache2.service stop en host: 192.168.1.100
+19-Jun-25 20:07:40 - INFO - Servicio mariadb.service levantado en host: 192.168.1.100
+22-Jun-25 19:35:33 - INFO - Usuario admin loggeado
+22-Jun-25 19:43:35 - INFO - Servicio apache2.service stop en host: 192.168.1.68

@@ -13,11 +13,31 @@ from .api.validarcaptcha import validar_recaptcha
 from .api.hasheador import hashing
 #from .api.intentos import tienes_intentos_login
 import re
-
+import logging
 import random
 import string
 import requests
 import time
+
+
+#logging.basicConfig(level=logging.INFO,
+ #                   filename='app.log',
+  #                  filemode='a',
+   #                 format='%(asctime)s - %(levelname)s - %(message)s',
+    #                datefmt='%d-%b-%y %H:%M:%S')
+
+
+logger = logging.getLogger("servidores_app")
+logger.setLevel(logging.INFO)
+
+file_handler = logging.FileHandler('app.log', mode='a')
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S')
+file_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
+
+# Silenciar paramiko
+logging.getLogger("paramiko").setLevel(logging.WARNING)
 
 # Permitir solo nombres válidos de servicios (evita inyección)
 SERVICIO_REGEX = re.compile(r'^[a-zA-Z0-9_.@-]+\.service$')
@@ -151,6 +171,7 @@ def login(request):
                 request.session['expira_2fa'] = expira
 
                 enviar_token_telegram(usuario_obj.chat_id, token)
+                logger.info(f'Usuario {usuario} loggeado')
                 return redirect('segundo_factor')
         else:
             errores.append('Credenciales incorrectas.')
@@ -229,7 +250,7 @@ def dashboard(request):
     info = []
     for s in Servidor.objects.all():
         host = s.obtener_host()
-        activo = subprocess.run(['ping','-c','1',host],
+        activo = subprocess.run(['ping','-c','3',host],
                                  stdout=subprocess.DEVNULL,
                                  stderr=subprocess.DEVNULL).returncode == 0
         info.append({'id': s.id, 'host': host, 'activo': activo})
@@ -269,6 +290,7 @@ def detalle_servidor(request):
         else:
             _, err = ejecutar_comando_ssh(**servidor,
                 comando=f"systemctl start {nombre}", sudo_pass=sudo_pwd)
+            logger.info(f'Servicio {nombre} levantado en host: {servidor['host']}')
             if err:
                 messages.error(request, f"No arrancó {nombre}: {err}")
             else:
@@ -332,6 +354,7 @@ def detalle_servicio(request):
         else:
             _, err = ejecutar_comando_ssh(**servidor,
                 comando=f"systemctl {accion} {srv}", sudo_pass=sudo_pwd)
+            logger.info(f'Servicio {srv} {accion} en host: {servidor['host']}')
             if err:
                 messages.error(request, f"No pudo {accion} {srv}: {err}")
             else:
@@ -381,6 +404,7 @@ def registrar_servidor(request):
             servidor = Servidor()
             servidor.guardar_datos(host, usuario, contrasena)  # ¡Usa el nuevo método!
             servidor.save()
+            logger.info(f'Servidor {host} registrado')
 
             return redirect('dashboard')
 
