@@ -11,6 +11,7 @@ from django.http import HttpResponse
 from .api.telegram import enviar_token_telegram
 from .api.validarcaptcha import validar_recaptcha
 from .api.hasheador import hashing
+from django.http import JsonResponse
 #from .api.intentos import tienes_intentos_login
 import re
 import logging
@@ -328,9 +329,10 @@ def detalle_servicio(request):
         return redirect('detalle_servicio')
 
     # Ahora, control de start/stop/restart:
-    srv = request.session.get('servicio_seleccionado')
-    if not srv:
-        return redirect('detalle_servidor')
+    srv = request.GET.get('servicio') or request.session.get('servicio_seleccionado')
+    if srv:
+        request.session['servicio_seleccionado'] = srv
+        #return redirect('detalle_servidor')
 
     try:
         s = Servidor.objects.get(pk=sid)
@@ -416,3 +418,33 @@ def registrar_servidor(request):
             return HttpResponse(f"Error inesperado: {str(error)}")
 
     return render(request, 'registrar_servidor.html')
+
+def servicios_activados_json(request):
+    """
+    Devuelve la lista de servicios activos del servidor actual como JSON.
+    """
+    if not request.session.get('usuario'):
+        return JsonResponse({'error': 'No autorizado'}, status=403)
+    sid = request.session.get('servidor_id')
+    if not sid:
+        return JsonResponse({'error': 'Servidor no definido'}, status=400)
+
+    try:
+        s = Servidor.objects.get(pk=sid)
+    except Servidor.DoesNotExist:
+        return JsonResponse({'error': 'Servidor no encontrado'}, status=404)
+
+    servidor = {
+        'host': s.obtener_host(),
+        'usuario': s.obtener_usuario(),
+        'contrasena': s.obtener_contrasena()
+    }
+
+    out, err = ejecutar_comando_ssh(**servidor,
+        comando="systemctl list-units --type=service --state=active --no-pager --no-legend | awk '{print $1}'")
+
+    if err:
+        return JsonResponse({'error': err}, status=500)
+
+    servicios = out.splitlines() if out else []
+    return JsonResponse({'servicios': servicios})

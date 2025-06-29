@@ -13,7 +13,7 @@
 <hr>
 
 <h2>Servicios activos</h2>
-<ul>
+<ul id="lista-servicios">
   {% for s in servicios %}
     <li>
       <form method="post" action="{% url 'detalle_servicio' %}" style="display:inline;">
@@ -36,6 +36,41 @@
     {% endfor %}
   </ul>
 {% endif %}
+
+<script>
+function actualizarServicios() {
+  fetch('{% url "servicios_json" %}')
+    .then(response => response.json())
+    .then(data => {
+      const lista = document.getElementById('lista-servicios');
+      lista.innerHTML = '';
+
+      if (data.servicios && data.servicios.length > 0) {
+        data.servicios.forEach(servicio => {
+          const li = document.createElement('li');
+          const enlace = document.createElement('a');
+          enlace.href = "{% url 'detalle_servicio' %}" + "?servicio=" + encodeURIComponent(servicio);
+          enlace.textContent = servicio;
+          enlace.style.color = 'blue';
+          enlace.style.cursor = 'pointer';
+          li.appendChild(enlace);
+          lista.appendChild(li);
+        });
+      } else {
+        const li = document.createElement('li');
+        li.textContent = 'No hay servicios activos.';
+        lista.appendChild(li);
+      }
+    })
+    .catch(err => {
+      console.error('Error al actualizar servicios:', err);
+    });
+}
+
+// Actualizar cada 10 segundos
+setInterval(actualizarServicios, 10000);
+</script>
+
 
 {% endblock %}
 

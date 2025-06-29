@@ -12,4 +12,5 @@ urlpatterns = [
     path('detalle-servidor/', views.detalle_servidor, name='detalle_servidor'),
     #path('seleccionar-servicio/', views.seleccionar_servicio, name='seleccionar_servicio'),
     path('detalle-servicio/', views.detalle_servicio, name='detalle_servicio'),
+    path('servicios-json/', views.servicios_activados_json, name='servicios_json'),
 ]
