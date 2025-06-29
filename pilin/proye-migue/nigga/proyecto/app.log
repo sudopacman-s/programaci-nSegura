@@ -149,3 +149,21 @@ NameError: name 'host' is not defined
 28-Jun-25 21:02:35 - INFO - Servicio apache2.service levantado en host: 192.168.1.68
 28-Jun-25 21:02:58 - INFO - Servicio apache2.service levantado en host: 192.168.1.68
 28-Jun-25 21:03:20 - INFO - Servicio apache2.service stop en host: 192.168.1.68
+29-Jun-25 19:33:58 - INFO - Usuario admin loggeado
+29-Jun-25 19:37:16 - INFO - Servicio apache2.service restart en host: 192.168.1.68
+29-Jun-25 19:37:24 - INFO - Servicio apache2.service stop en host: 192.168.1.68
+29-Jun-25 19:37:31 - INFO - Servicio apache2.service start en host: 192.168.1.68
+29-Jun-25 19:50:39 - INFO - Servicio apache2.service stop en host: 192.168.1.68
+29-Jun-25 19:50:49 - INFO - Servicio apache2.service start en host: 192.168.1.68
+29-Jun-25 19:50:57 - INFO - Servicio apache2.service restart en host: 192.168.1.68
+29-Jun-25 19:51:17 - INFO - Servicio apache2.service stop en host: 192.168.1.68
+29-Jun-25 19:55:08 - INFO - Servicio apache2.service stop en host: 192.168.1.68
+29-Jun-25 19:55:37 - INFO - Servicio apache2.service levantado en host: 192.168.1.68
+29-Jun-25 19:58:25 - INFO - Servicio apache2.service stop en host: 192.168.1.68
+29-Jun-25 19:58:41 - INFO - Servicio apache2.service levantado en host: 192.168.1.68
+29-Jun-25 19:59:13 - INFO - Servicio apache2.service restart en host: 192.168.1.68
+29-Jun-25 19:59:57 - INFO - Servicio apache2.service restart en host: 192.168.1.68
+29-Jun-25 20:00:02 - INFO - Servicio apache2.service stop en host: 192.168.1.68
+29-Jun-25 20:03:28 - INFO - Servicio apache2.service restart en host: 192.168.1.68
+29-Jun-25 20:03:36 - INFO - Servicio apache2.service restart en host: 192.168.1.68
+29-Jun-25 20:09:08 - INFO - Servicio apache2.service restart en host: 192.168.1.68

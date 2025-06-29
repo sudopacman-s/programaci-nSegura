@@ -219,22 +219,23 @@ def logout_view(request):
     return redirect('login')
 
 def ejecutar_comando_ssh(host, usuario, contrasena, comando, sudo_pass=None):
-    """
-    Funcion para ejecutar comandos en servidor remoto.
-    """
     try:
         cli = paramiko.SSHClient()
         cli.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         cli.connect(hostname=host, username=usuario, password=contrasena, timeout=5)
+
         if sudo_pass:
             comando = f"echo '{sudo_pass}' | sudo -S {comando}"
         stdin, stdout, stderr = cli.exec_command(comando, timeout=10)
         out = stdout.read().decode().strip()
         err = stderr.read().decode().strip()
+        exit_status = stdout.channel.recv_exit_status()
         cli.close()
-        return out, err
+        return out, err, exit_status
     except Exception as e:
-        return "", f"Error SSH: {e}"
+        return "", f"Error SSH: {e}", -1
+
+
 
 def dashboard(request):
     """
@@ -289,17 +290,17 @@ def detalle_servidor(request):
         elif not sudo_pwd:
             messages.error(request, "Contraseña sudo requerida.")
         else:
-            _, err = ejecutar_comando_ssh(**servidor,
+            _, err, exit_code = ejecutar_comando_ssh(**servidor,
                 comando=f"systemctl start {nombre}", sudo_pass=sudo_pwd)
             logger.info(f'Servicio {nombre} levantado en host: {servidor['host']}')
-            if err:
+            if exit_code != 0:
                 messages.error(request, f"No arrancó {nombre}: {err}")
             else:
                 messages.success(request, f"{nombre} arrancado.")
         return redirect('detalle_servidor')
 
     # Listar servicios activos
-    out, err = ejecutar_comando_ssh(**servidor,
+    out, err, _ = ejecutar_comando_ssh(**servidor,
         comando="systemctl list-units --type=service --state=active --no-pager --no-legend | awk '{print $1}'")
     servicios = out.splitlines() if out else []
     if err:
@@ -354,17 +355,18 @@ def detalle_servicio(request):
         elif not sudo_pwd:
             messages.error(request, "Contraseña sudo requerida.")
         else:
-            _, err = ejecutar_comando_ssh(**servidor,
+            _, err, exit_code = ejecutar_comando_ssh(**servidor,
                 comando=f"systemctl {accion} {srv}", sudo_pass=sudo_pwd)
-            logger.info(f'Servicio {srv} {accion} en host: {servidor['host']}')
-            if err:
-                messages.error(request, f"No pudo {accion} {srv}: {err}")
-            else:
-                messages.success(request, f"{srv}: {accion} ejecutado.")
+            logger.info(f'Servicio {srv} {accion} en host: {servidor["host"]}')
+        if exit_code != 0:
+            messages.error(request, f"No pudo {accion}")
+        else:
+            messages.success(request, f"{srv}: {accion} ejecutado.")
+
         return redirect('detalle_servicio')
 
     # GET: mostrar estado
-    info, err = ejecutar_comando_ssh(**servidor,
+    info, err, _ = ejecutar_comando_ssh(**servidor,
         comando=f"systemctl status {srv} --no-pager")
     if err:
         info = f"Error al obtener estado: {err}"
@@ -440,7 +442,7 @@ def servicios_activados_json(request):
         'contrasena': s.obtener_contrasena()
     }
 
-    out, err = ejecutar_comando_ssh(**servidor,
+    out, err, _ = ejecutar_comando_ssh(**servidor,
         comando="systemctl list-units --type=service --state=active --no-pager --no-legend | awk '{print $1}'")
 
     if err:
