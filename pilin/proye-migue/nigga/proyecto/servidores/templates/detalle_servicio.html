@@ -6,7 +6,6 @@
 
 <form method="post">
   {% csrf_token %}
-  <input type="password" name="sudo_password" placeholder="Contraseña sudo" required>
   <button name="accion" value="stop">Detener</button>
   <button name="accion" value="restart">Reiniciar</button>
   <button name="accion" value="start">Encender</button>

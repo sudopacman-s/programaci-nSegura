@@ -19,7 +19,7 @@ import random
 import string
 import requests
 import time
-
+import ipaddress
 
 #logging.basicConfig(level=logging.INFO,
  #                   filename='app.log',
@@ -224,8 +224,10 @@ def ejecutar_comando_ssh(host, usuario, contrasena, comando, sudo_pass=None):
         cli.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         cli.connect(hostname=host, username=usuario, password=contrasena, timeout=5)
 
+        # Si se requiere contraseña sudo (ya no se usará, pero lo dejamos por compatibilidad)
         if sudo_pass:
             comando = f"echo '{sudo_pass}' | sudo -S {comando}"
+
         stdin, stdout, stderr = cli.exec_command(comando, timeout=10)
         out = stdout.read().decode().strip()
         err = stderr.read().decode().strip()
@@ -252,7 +254,7 @@ def dashboard(request):
     info = []
     for s in Servidor.objects.all():
         host = s.obtener_host()
-        activo = subprocess.run(['ping','-c','3',host],
+        activo = subprocess.run(['ping','-c','1',host],
                                  stdout=subprocess.DEVNULL,
                                  stderr=subprocess.DEVNULL).returncode == 0
         info.append({'id': s.id, 'host': host, 'activo': activo})
@@ -260,8 +262,8 @@ def dashboard(request):
 
 def detalle_servidor(request):
     """
-    Muestre detalles del servidor, así como los servicios y campo para levantar servicio.
-    Lista todos los servicios filtrados activos.
+    Muestra detalles del servidor, así como los servicios y campo para levantar servicios.
+    Ya no solicita contraseña sudo gracias a configuración NOPASSWD.
     """
     if not request.session.get('usuario'):
         return redirect('login')
@@ -284,35 +286,34 @@ def detalle_servidor(request):
     # Levantar servicio (POST desde este mismo template)
     if request.method == 'POST' and 'nombre_servicio' in request.POST:
         nombre = request.POST['nombre_servicio'].strip()
-        sudo_pwd = request.POST.get('sudo_password','').strip()
+
         if not SERVICIO_REGEX.match(nombre):
-            messages.error(request, "Servicio inválido.")
-        elif not sudo_pwd:
-            messages.error(request, "Contraseña sudo requerida.")
+            messages.error(request, "Nombre de servicio inválido.")
         else:
-            _, err, exit_code = ejecutar_comando_ssh(**servidor,
-                comando=f"systemctl start {nombre}", sudo_pass=sudo_pwd)
-            logger.info(f'Servicio {nombre} levantado en host: {servidor['host']}')
+            comando = f"sudo systemctl start {nombre}"
+            _, err, exit_code = ejecutar_comando_ssh(**servidor, comando=comando)
+            logger.info(f'Servicio {nombre} levantado en host: {servidor["host"]}')
             if exit_code != 0:
-                messages.error(request, f"No arrancó {nombre}: {err}")
+                messages.error(request, f"No se pudo iniciar {nombre}: {err}")
             else:
-                messages.success(request, f"{nombre} arrancado.")
+                messages.success(request, f"{nombre} iniciado correctamente.")
         return redirect('detalle_servidor')
 
     # Listar servicios activos
-    out, err, _ = ejecutar_comando_ssh(**servidor,
-        comando="systemctl list-units --type=service --state=active --no-pager --no-legend | awk '{print $1}'")
+    comando_listar = "systemctl list-units --type=service --state=active --no-pager --no-legend | awk '{print $1}'"
+    out, err, _ = ejecutar_comando_ssh(**servidor, comando=comando_listar)
     servicios = out.splitlines() if out else []
     if err:
-        messages.error(request, "No pude listar servicios.")
+        messages.error(request, "No se pudieron listar los servicios activos.")
 
     return render(request, 'detalle_servidor.html', {
         'servicios': servicios
     })
 
+
 def detalle_servicio(request):
     """
-    Funcion que muestra detalles de cada servicio, así como posibilidad de detenerlo, reiniciarlo o encenderlo.
+    Muestra detalles de un servicio y permite detenerlo, reiniciarlo o encenderlo sin contraseña sudo.
     """
     if not request.session.get('usuario'):
         return redirect('login')
@@ -329,11 +330,10 @@ def detalle_servicio(request):
             messages.error(request, "Servicio inválido.")
         return redirect('detalle_servicio')
 
-    # Ahora, control de start/stop/restart:
+    # Obtener servicio seleccionado
     srv = request.GET.get('servicio') or request.session.get('servicio_seleccionado')
     if srv:
         request.session['servicio_seleccionado'] = srv
-        #return redirect('detalle_servidor')
 
     try:
         s = Servidor.objects.get(pk=sid)
@@ -349,25 +349,21 @@ def detalle_servicio(request):
     # Acción sobre el servicio
     if request.method == 'POST' and 'accion' in request.POST:
         accion = request.POST['accion']
-        sudo_pwd = request.POST.get('sudo_password','').strip()
-        if accion not in ['start','stop','restart']:
+        if accion not in ['start', 'stop', 'restart']:
             messages.error(request, "Acción no permitida.")
-        elif not sudo_pwd:
-            messages.error(request, "Contraseña sudo requerida.")
         else:
-            _, err, exit_code = ejecutar_comando_ssh(**servidor,
-                comando=f"systemctl {accion} {srv}", sudo_pass=sudo_pwd)
+            comando = f"sudo systemctl {accion} {srv}"
+            _, err, exit_code = ejecutar_comando_ssh(**servidor, comando=comando)
             logger.info(f'Servicio {srv} {accion} en host: {servidor["host"]}')
-        if exit_code != 0:
-            messages.error(request, f"No pudo {accion}")
-        else:
-            messages.success(request, f"{srv}: {accion} ejecutado.")
-
+            if exit_code != 0:
+                messages.error(request, f"No se pudo ejecutar {accion}: {err}")
+            else:
+                messages.success(request, f"{srv}: acción {accion} ejecutada correctamente.")
         return redirect('detalle_servicio')
 
-    # GET: mostrar estado
-    info, err, _ = ejecutar_comando_ssh(**servidor,
-        comando=f"systemctl status {srv} --no-pager")
+    # GET: mostrar estado del servicio
+    comando_status = f"sudo systemctl status {srv} --no-pager"
+    info, err, _ = ejecutar_comando_ssh(**servidor, comando=comando_status)
     if err:
         info = f"Error al obtener estado: {err}"
 
@@ -376,14 +372,9 @@ def detalle_servicio(request):
         'info_servicio': info
     })
 
-def registrar_servidor(request):
-    """
-    Funcion para registrar un nuevo servidor mediante un formulario.
 
-    IP
-    Usuario: str
-    Contraseña: str
-    """
+
+def registrar_servidor(request):
     if not request.session.get('usuario'):
         return redirect('login')
     if request.method == 'POST':
@@ -391,22 +382,29 @@ def registrar_servidor(request):
         usuario = request.POST.get('usuario')
         contrasena = request.POST.get('contrasena')
 
+        # Validar IP con ipaddress
         try:
-            # 1. Verificar conexión SSH primero
+            ipaddress.ip_address(host)  # Valida IPv4 o IPv6, lanza ValueError si inválida
+        except ValueError:
+            error = "Dirección IP no válida."
+            return render(request, 'registrar_servidor.html', {'error': error})
+
+        try:
+            # Verificar conexión SSH primero
             cliente = paramiko.SSHClient()
             cliente.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             cliente.connect(hostname=host, username=usuario, password=contrasena, timeout=10)
 
-            # 2. Registrar en logs del servidor
+            # Registrar en logs del servidor
             fecha_actual = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             mensaje = f"Registro en aplicación: {fecha_actual}\n"
             comando = f'echo "{mensaje}" | sudo tee -a /var/log/administrador.log'
             cliente.exec_command(comando)
             cliente.close()
 
-            # 3. Guardar en base de datos (con cifrado)
+            # Guardar en base de datos (con cifrado)
             servidor = Servidor()
-            servidor.guardar_datos(host, usuario, contrasena)  # ¡Usa el nuevo método!
+            servidor.guardar_datos(host, usuario, contrasena)
             servidor.save()
             logger.info(f'Servidor {host} registrado')
 
@@ -420,6 +418,8 @@ def registrar_servidor(request):
             return HttpResponse(f"Error inesperado: {str(error)}")
 
     return render(request, 'registrar_servidor.html')
+
+
 
 def servicios_activados_json(request):
     """
