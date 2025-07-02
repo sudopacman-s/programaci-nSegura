@@ -2,7 +2,9 @@
 {% block title %}Detalle del Servidor{% endblock %}
 {% block content %}
 
-<h2>Levantar servicio</h2>
+<h2>Servicios activos en {{ nombre_servidor }}</h2>
+
+<h3>Levantar servicio</h3>
 <form method="post">
   {% csrf_token %}
   <input type="text" name="nombre_servicio" placeholder="apache2.service" required>
@@ -11,7 +13,6 @@
 
 <hr>
 
-<h2>Servicios activos</h2>
 <ul id="lista-servicios">
   {% for s in servicios %}
     <li>
@@ -44,7 +45,7 @@ function actualizarServicios() {
         data.servicios.forEach(servicio => {
           const li = document.createElement('li');
           const enlace = document.createElement('a');
-          enlace.href = "{% url 'detalle_servicio' %}" + "?servicio=" + encodeURIComponent(servicio);
+          enlace.href = "{% url 'detalle_servicio' %}?servicio=" + encodeURIComponent(servicio);
           enlace.textContent = servicio;
           enlace.style.color = 'blue';
           enlace.style.cursor = 'pointer';

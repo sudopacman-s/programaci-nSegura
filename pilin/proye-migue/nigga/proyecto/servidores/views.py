@@ -257,7 +257,7 @@ def dashboard(request):
         activo = subprocess.run(['ping','-c','1',host],
                                  stdout=subprocess.DEVNULL,
                                  stderr=subprocess.DEVNULL).returncode == 0
-        info.append({'id': s.id, 'host': host, 'activo': activo})
+        info.append({'id': s.id, 'host': host, 'activo': activo, 'nombre': s.nombre})
     return render(request, 'dashboard.html', {'servidores': info})
 
 def detalle_servidor(request):
@@ -277,37 +277,39 @@ def detalle_servidor(request):
         messages.error(request, "Servidor no encontrado.")
         return redirect('dashboard')
 
-    servidor = {
+    servidor_ssh = {
         'host': s.obtener_host(),
         'usuario': s.obtener_usuario(),
         'contrasena': s.obtener_contrasena()
     }
+    nombre = s.nombre  # asignamos aquí para usar en render
 
     # Levantar servicio (POST desde este mismo template)
     if request.method == 'POST' and 'nombre_servicio' in request.POST:
-        nombre = request.POST['nombre_servicio'].strip()
+        nombre_servicio = request.POST['nombre_servicio'].strip()
 
-        if not SERVICIO_REGEX.match(nombre):
+        if not SERVICIO_REGEX.match(nombre_servicio):
             messages.error(request, "Nombre de servicio inválido.")
         else:
-            comando = f"sudo systemctl start {nombre}"
-            _, err, exit_code = ejecutar_comando_ssh(**servidor, comando=comando)
-            logger.info(f'Servicio {nombre} levantado en host: {servidor["host"]}')
+            comando = f"sudo systemctl start {nombre_servicio}"
+            _, err, exit_code = ejecutar_comando_ssh(**servidor_ssh, comando=comando)
+            logger.info(f'Servicio {nombre_servicio} levantado en host: {servidor_ssh["host"]}')
             if exit_code != 0:
-                messages.error(request, f"No se pudo iniciar {nombre}: {err}")
+                messages.error(request, f"No se pudo iniciar {nombre_servicio}: {err}")
             else:
-                messages.success(request, f"{nombre} iniciado correctamente.")
+                messages.success(request, f"{nombre_servicio} iniciado correctamente.")
         return redirect('detalle_servidor')
 
     # Listar servicios activos
     comando_listar = "systemctl list-units --type=service --state=active --no-pager --no-legend | awk '{print $1}'"
-    out, err, _ = ejecutar_comando_ssh(**servidor, comando=comando_listar)
+    out, err, _ = ejecutar_comando_ssh(**servidor_ssh, comando=comando_listar)
     servicios = out.splitlines() if out else []
     if err:
         messages.error(request, "No se pudieron listar los servicios activos.")
 
     return render(request, 'detalle_servidor.html', {
-        'servicios': servicios
+        'servicios': servicios,
+        'nombre': nombre
     })
 
 
@@ -340,11 +342,12 @@ def detalle_servicio(request):
     except Servidor.DoesNotExist:
         return redirect('dashboard')
 
-    servidor = {
+    servidor_ssh = {
         'host': s.obtener_host(),
         'usuario': s.obtener_usuario(),
         'contrasena': s.obtener_contrasena()
     }
+    nombre = s.nombre  # Para pasar al template
 
     # Acción sobre el servicio
     if request.method == 'POST' and 'accion' in request.POST:
@@ -353,8 +356,8 @@ def detalle_servicio(request):
             messages.error(request, "Acción no permitida.")
         else:
             comando = f"sudo systemctl {accion} {srv}"
-            _, err, exit_code = ejecutar_comando_ssh(**servidor, comando=comando)
-            logger.info(f'Servicio {srv} {accion} en host: {servidor["host"]}')
+            _, err, exit_code = ejecutar_comando_ssh(**servidor_ssh, comando=comando)
+            logger.info(f'Servicio {srv} {accion} en host: {servidor_ssh["host"]}')
             if exit_code != 0:
                 messages.error(request, f"No se pudo ejecutar {accion}: {err}")
             else:
@@ -363,51 +366,61 @@ def detalle_servicio(request):
 
     # GET: mostrar estado del servicio
     comando_status = f"sudo systemctl status {srv} --no-pager"
-    info, err, _ = ejecutar_comando_ssh(**servidor, comando=comando_status)
+    info, err, _ = ejecutar_comando_ssh(**servidor_ssh, comando=comando_status)
     if err:
         info = f"Error al obtener estado: {err}"
 
     return render(request, 'detalle_servicio.html', {
         'nombre_servicio': srv,
-        'info_servicio': info
+        'info_servicio': info,
+        'nombre': nombre
     })
 
 
 
+import ipaddress  # Asegúrate de tener este import
+
 def registrar_servidor(request):
     if not request.session.get('usuario'):
         return redirect('login')
-    if request.method == 'POST':
-        host = request.POST.get('host')
-        usuario = request.POST.get('usuario')
-        contrasena = request.POST.get('contrasena')
 
-        # Validar IP con ipaddress
+    if request.method == 'POST':
+        host = request.POST.get('host', '').strip()
+        usuario = request.POST.get('usuario', '').strip()
+        contrasena = request.POST.get('contrasena', '').strip()
+        nombre = request.POST.get('nombre', '').strip()
+
+        if not host or not usuario or not contrasena or not nombre:
+            error = "Todos los campos son obligatorios."
+            return render(request, 'registrar_servidor.html', {'error': error})
+
+        # Validar IP
         try:
-            ipaddress.ip_address(host)  # Valida IPv4 o IPv6, lanza ValueError si inválida
+            ipaddress.ip_address(host)
         except ValueError:
             error = "Dirección IP no válida."
             return render(request, 'registrar_servidor.html', {'error': error})
 
         try:
-            # Verificar conexión SSH primero
+            # Verificar conexión SSH
             cliente = paramiko.SSHClient()
             cliente.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             cliente.connect(hostname=host, username=usuario, password=contrasena, timeout=10)
 
-            # Registrar en logs del servidor
+            # Registrar en logs remotos
             fecha_actual = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             mensaje = f"Registro en aplicación: {fecha_actual}\n"
             comando = f'echo "{mensaje}" | sudo tee -a /var/log/administrador.log'
             cliente.exec_command(comando)
             cliente.close()
 
-            # Guardar en base de datos (con cifrado)
+            # Guardar en base de datos
             servidor = Servidor()
+            servidor.nombre = nombre
             servidor.guardar_datos(host, usuario, contrasena)
             servidor.save()
-            logger.info(f'Servidor {host} registrado')
 
+            logger.info(f'Servidor {host} registrado con nombre: {nombre}')
             return redirect('dashboard')
 
         except paramiko.AuthenticationException:

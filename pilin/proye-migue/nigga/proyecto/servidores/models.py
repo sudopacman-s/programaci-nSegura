@@ -22,6 +22,7 @@ class Usuario(models.Model):
 
 class Servidor(models.Model):
     id = models.CharField(primary_key=True, max_length=255)  # host_usuario
+    nombre = models.CharField(max_length=100, default='ServidorDesconocido')  # ← nuevo campo
     host_cifrado = models.BinaryField()
     usuario_cifrado = models.BinaryField()
     contrasena_cifrada = models.BinaryField()
@@ -42,3 +43,4 @@ class Servidor(models.Model):
 
     def obtener_contrasena(self):
         return generar_fernet().decrypt(self.contrasena_cifrada).decode()
+

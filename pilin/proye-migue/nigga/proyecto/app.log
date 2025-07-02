@@ -187,3 +187,16 @@ NameError: name 'host' is not defined
 01-Jul-25 23:32:26 - INFO - Servicio apache2.service levantado en host: 192.168.1.78
 01-Jul-25 23:37:47 - INFO - Servicio apache2.service stop en host: 192.168.1.68
 01-Jul-25 23:37:53 - INFO - Servicio apache2.service levantado en host: 192.168.1.68
+02-Jul-25 00:03:01 - INFO - Usuario admin loggeado
+02-Jul-25 00:12:47 - INFO - Servicio apache2.service stop en host: 192.168.1.68
+02-Jul-25 00:12:49 - INFO - Servicio apache2.service restart en host: 192.168.1.68
+02-Jul-25 00:12:51 - INFO - Servicio apache2.service start en host: 192.168.1.68
+02-Jul-25 00:12:54 - INFO - Servicio apache2.service stop en host: 192.168.1.68
+02-Jul-25 00:13:02 - INFO - Servicio apache2.service levantado en host: 192.168.1.68
+02-Jul-25 00:13:06 - INFO - Servicio apache2.service stop en host: 192.168.1.68
+02-Jul-25 00:14:29 - INFO - Servicio apache2.service stop en host: 192.168.1.78
+02-Jul-25 00:20:12 - INFO - Servidor 192.168.1.78 registrado con nombre: Servidor Miguel
+02-Jul-25 00:20:47 - INFO - Servicio apache2.service stop en host: 192.168.1.78
+02-Jul-25 00:20:53 - INFO - Servicio apache2.service levantado en host: 192.168.1.78
+02-Jul-25 01:40:26 - INFO - Servicio apache2.service stop en host: 192.168.1.68
+02-Jul-25 01:41:01 - INFO - Servicio apache2.service start en host: 192.168.1.68

@@ -4,13 +4,11 @@
 {% block content %}
   <a href="{% url "logout" %}">Salir</a>
   <h2 style="margin-bottom: 20px;">Servidores Registrados</h2>
-  
-  
-<!-- Botón circular con ícono 📝 -->
-<a href="{% url 'registrar' %}" class="boton-circular" title="Registrar nuevo">
-    📝
-</a>
 
+  <!-- Botón circular con ícono 📝 -->
+  <a href="{% url 'registrar' %}" class="boton-circular" title="Registrar nuevo">
+      📝
+  </a>
 
   <div style="display: flex; flex-wrap: wrap; gap: 20px;">
     {% for servidor in servidores %}
@@ -18,7 +16,7 @@
         {% csrf_token %}
         <input type="hidden" name="servidor_id" value="{{ servidor.id }}">
         <button type="submit" style="
-          width: 200px;
+          width: 220px;
           height: 120px;
           border-radius: 10px;
           border: none;
@@ -30,7 +28,11 @@
           cursor: pointer;
           transition: transform 0.2s ease;
         " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-          {{ servidor.host }}<br>
+          {% if servidor.nombre %}
+            {{ servidor.nombre }}<br><small>{{ servidor.host }}</small><br>
+          {% else %}
+            {{ servidor.host }}<br>
+          {% endif %}
           {% if servidor.activo %}🟢 Activo{% else %}🔴 Inactivo{% endif %}
         </button>
       </form>

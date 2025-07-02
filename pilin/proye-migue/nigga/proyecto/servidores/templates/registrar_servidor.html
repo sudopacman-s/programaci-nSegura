@@ -12,8 +12,12 @@
 <div class="formulario-servidor">
     <form method="post">
         {% csrf_token %}
-        <label for="host">Host:</label>
-        <input type="text" id="host" name="host" required>
+
+        <label for="nombre">Nombre del servidor:</label>
+        <input type="text" id="nombre" name="nombre" placeholder="ServidorDHCP" required>
+
+        <label for="host">IP / Host:</label>
+        <input type="text" id="host" name="host" placeholder="192.168.1.10" required>
 
         <label for="usuario">Usuario:</label>
         <input type="text" id="usuario" name="usuario" required>
@@ -24,7 +28,6 @@
         <button type="submit" class="boton-enviar">Registrar servidor</button>
     </form>
 
-    <!-- Botón para regresar al Dashboard -->
     <a href="{% url 'dashboard' %}" class="boton-volver">← Volver al Dashboard</a>
 </div>
 
