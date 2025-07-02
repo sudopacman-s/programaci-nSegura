@@ -200,3 +200,7 @@ NameError: name 'host' is not defined
 02-Jul-25 00:20:53 - INFO - Servicio apache2.service levantado en host: 192.168.1.78
 02-Jul-25 01:40:26 - INFO - Servicio apache2.service stop en host: 192.168.1.68
 02-Jul-25 01:41:01 - INFO - Servicio apache2.service start en host: 192.168.1.68
+02-Jul-25 01:59:08 - INFO - Usuario admin loggeado
+02-Jul-25 01:59:49 - INFO - Servicio apache2.service restart en host: 192.168.1.78
+02-Jul-25 01:59:51 - INFO - Servicio apache2.service stop en host: 192.168.1.78
+02-Jul-25 01:59:52 - INFO - Servicio apache2.service restart en host: 192.168.1.78

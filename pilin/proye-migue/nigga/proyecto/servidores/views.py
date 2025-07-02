@@ -309,7 +309,7 @@ def detalle_servidor(request):
 
     return render(request, 'detalle_servidor.html', {
         'servicios': servicios,
-        'nombre': nombre
+        'nombre_servidor': nombre
     })
 
 
@@ -373,7 +373,7 @@ def detalle_servicio(request):
     return render(request, 'detalle_servicio.html', {
         'nombre_servicio': srv,
         'info_servicio': info,
-        'nombre': nombre
+        'nombre_servidor': nombre
     })
 
 
