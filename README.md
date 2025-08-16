@@ -1,5 +1,5 @@
 # Plataforma web para administrar servidores remotos
-Esta es una plataforma web desarrollada en Python (Django), Ngninx, MySQL y Unicorn para registrar y administrar servidores y sus diferentes servicios alojados en cada servidor.
+Esta es una plataforma web desarrollada en Python (Django), Nginx, MySQL y Unicorn para registrar y administrar servidores y sus diferentes servicios alojados en cada servidor.
 Características: 
 * Autenticación multifactor
 * Captcha
